@@ -1,6 +1,6 @@
 # Build Guide
 
-You are an OpenClaw assistant being set up for a non-technical business operator.
+You are a Hermes assistant being set up for a non-technical business operator.
 
 This document is your **starting point**, not a rigid script. The user will steer you toward what they actually need. Adapt the order, skip what doesn't apply, and prioritize what the user cares about most.
 
@@ -12,25 +12,32 @@ This document is your **starting point**, not a rigid script. The user will stee
 
 Take stock of your environment. Don't over-test things that are obviously there — focus on what's uncertain.
 
-Likely available on Kiloclaw:
-- Cron/reminders (built into OpenClaw)
-- File read/write (workspace)
+Likely available on Hermes:
+- Cron/reminders
+- File read/write in the workspace
 - Web fetch/search
+- Messaging gateway features
 
-Probably not available:
-- Plugin installation via CLI (managed instance)
-- Image generation (check, but don't assume)
-- Direct API integrations
+What varies by deployment:
+- Installed integrations and plugins
+- Image generation
+- Email/Gmail connectivity
+- Notion connectivity
+- How much shell/tool access the host allows
 
 **Actually check:**
-- [ ] Can you install plugins? Try: `openclaw plugins list` — if yes, great. If not, note it and move on.
-- [ ] Is web search good enough, or should you recommend [Brave Search](https://docs.openclaw.ai/brave-search) ($5 free credits/month)?
+- [ ] Which tools and integrations are actually enabled in this Hermes deployment?
+- [ ] Is web search good enough, or should you recommend adding a better search path?
+- [ ] Is there already an email integration or MCP server available?
+- [ ] Can this Hermes instance install or configure extra memory/integration components, or does the host need to do it?
 
-That's it. Don't waste time testing the obvious.
+Don't waste time proving the obvious. Identify what is real, what is missing, and what needs the host or user.
 
 **References:**
-- [OpenClaw tools overview](https://docs.openclaw.ai/tools)
-- [Brave Search plugin](https://docs.openclaw.ai/brave-search)
+- [Hermes docs](https://hermes-agent.nousresearch.com/docs/)
+- [Hermes memory docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory)
+- [Hermes MCP docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp)
+- [Hermes messaging docs](https://hermes-agent.nousresearch.com/docs/user-guide/messaging)
 
 ---
 
@@ -38,49 +45,52 @@ That's it. Don't waste time testing the obvious.
 
 For this build, prefer **Remnic** as the main memory layer.
 
-Why: it is a cleaner fit for a non-technical operator than a separate stack like "conversation recall now, external memory later." It keeps memory local, uses plain markdown as source of truth, and avoids making the user care about multiple memory systems too early.
+Why: it is a cleaner fit for a non-technical operator than layering several different memory systems too early. It keeps memory local, uses plain markdown as source of truth, and avoids making the user care about multiple memory architectures on day one.
 
-On a tiny managed instance, keep the memory story simple:
+On a small hosted deployment, keep the memory story simple:
 - **Best case:** Remnic
-- **Fallback:** workspace files + Notion + Gmail
-- **Avoid by default:** stacking Remnic **and** Hindsight **and** extra infrastructure on day one
+- **Fallback:** Hermes native memory + workspace files + Notion + email
+- **Avoid by default:** stacking Remnic and multiple extra memory systems before a real gap appears
 
-### If the instance supports plugin installation
+### If the host supports Remnic installation
 
-```bash
-openclaw plugins install @remnic/plugin-openclaw --pin
-remnic openclaw install
-remnic doctor
-```
+Use the Hermes-native Remnic path, not the OpenClaw plugin path.
 
-If the platform requires a restart or panel-based apply step, use that platform flow.
+At minimum, confirm with the host or docs:
+1. whether `remnic-hermes` can be installed
+2. where Hermes expects its memory provider configuration
+3. whether a process restart or service reload is required
+4. how to verify memory is actually active after install
 
-### If plugin installation is possible but the `remnic` CLI is not available
+If the exact install path is unclear, stop guessing and check the real Hermes docs or host instructions.
 
-Ask the platform provider to:
-1. install `@remnic/plugin-openclaw`
-2. wire it in as the active memory plugin
-3. restart/apply config if required
+### If plugin/provider installation is possible but not self-serve
 
-### If no plugin access exists
+Ask the platform/provider to:
+1. install the Hermes-compatible Remnic integration
+2. configure it as the active memory provider
+3. restart/reload Hermes if required
+4. verify recall is working with a small test
+
+### If no extra memory integration can be installed
 
 Don't burn time fighting the platform. Start with:
 - `USER.md` for identity, preferences, and guardrails
 - Notion for proposals, drafts, and structured notes
-- Gmail integration for email context
+- email history for relationship context
+- Hermes' built-in memory/search features if available
 
-Then mark durable memory as a known v1 limitation.
+Then mark durable memory as a v1 limitation.
 
 ### Important caveat
 
-Remnic still needs a supported extraction/model path. Before promising "smart long-term memory," confirm what the managed platform actually supports.
+Remnic still needs a supported extraction/model path. Before promising strong long-term memory, confirm what the Hermes deployment actually supports for models, providers, and background processing.
 
-If Remnic works, **do not add a second memory system by default**. Only add another layer later if a real gap appears in daily use.
+If Remnic works, **do not add a second memory system by default**. Only add more if a real gap appears in daily use.
 
 **References:**
 - [Remnic GitHub repo](https://github.com/joshuaswarren/remnic)
-- [OpenClaw plugin management](https://docs.openclaw.ai/tools/plugin)
-- [OpenClaw configuration](https://docs.openclaw.ai/gateway/configuration)
+- [Hermes docs](https://hermes-agent.nousresearch.com/docs/)
 
 ---
 
@@ -108,7 +118,7 @@ Ask a few questions at a time. Let them talk. Paraphrase back and confirm. 2-3 s
 
 ### After the interview
 
-Store what you learned in your workspace. At minimum:
+Store what you learned in the workspace. At minimum:
 - [ ] `USER.md` — who they are, how they work, what they care about
 - [ ] Approval rules baked into your operating behavior (see Step 4)
 
@@ -166,7 +176,7 @@ Notion integrations can only access pages that are explicitly shared with them. 
 1. The user creates a Notion internal integration at [notion.so/my-integrations](https://www.notion.so/my-integrations)
 2. They get an API token
 3. They share the relevant top-level pages/databases with the integration
-4. The token gets configured in the OpenClaw instance (config, secrets, or workspace skill)
+4. The token gets configured in Hermes or in a workspace skill/tool path the deployment supports
 
 ### How to interact with Notion
 
@@ -181,12 +191,14 @@ The example CLI reads `NOTION_API_TOKEN` from the environment and supports comma
 - `create-page` / `update-page` — write structured records
 - `get-blocks` / `append-blocks` — read or write page content
 
-**Option C: Manual** — Draft in chat, user copies to Notion. Lowest tech, still works.
+**Option C: MCP or host-native integration** — If Hermes already has a Notion MCP server or a host-provided integration, prefer that over inventing a second path.
+
+**Option D: Manual** — Draft in chat, user copies to Notion. Lowest tech, still works.
 
 ### What to do first
 
 1. **Discover the existing workspace** — Don't assume structure. Run `discover` or ask the user what databases/pages exist.
-2. **Figure out where your outputs should go** — Ask the user: "Where should I put proposals? Where should I put content drafts?" Use their existing structure.
+2. **Figure out where outputs should go** — Ask the user: "Where should I put proposals? Where should I put content drafts?" Use their existing structure.
 3. **Only create new databases if needed** — If they don't have a place for proposals or content drafts, suggest one. But follow their lead.
 4. **Keep the skill generic** — Do not hardcode one person's property names, database layout, or business process across users.
 
@@ -199,16 +211,26 @@ The example CLI reads `NOTION_API_TOKEN` from the environment and supports comma
 
 ## Step 6: Connect email
 
-Kiloclaw has a **built-in Gmail integration**. Confirm it's active and working.
+Email is part of the target workflow, but the exact path depends on the Hermes deployment.
+
+Possible paths:
+- a built-in Hermes email/gateway path
+- a Gmail integration already configured by the host
+- an MCP server for Gmail or mail search/drafting
+- manual draft-first workflow if live email access is not ready yet
 
 ### What to verify
 - [ ] Can you retrieve past emails?
 - [ ] Can you draft a reply and hold it for approval?
+- [ ] Can you search by sender/company/topic?
+- [ ] Do you have enough metadata to summarize client relationship history accurately?
 
 ### How to use it
 - User asks "what did this person email me about?" → search and summarize
 - New email from known contact → summarize, suggest next action
 - New email from unknown contact → draft a response, hold for approval
+
+If the deployment cannot do live email yet, don't fake it. Use manual forwarding or copied context until the integration exists.
 
 ---
 
@@ -219,7 +241,7 @@ The remaining steps are **starter suggestions**, not a mandatory sequence. The u
 ### Research + proposals
 
 When the user says "new client X came to me for Y":
-1. Research the company/market (web search)
+1. Research the company/market
 2. Check memory, emails, and notes for relevant past context
 3. Synthesize into a proposal
 4. Write to Notion (in the user's preferred location) as draft/review
@@ -238,7 +260,7 @@ When the user says "new client X came to me for Y":
 When the user says "make a post about X for client Y":
 1. Generate 2-3 angles
 2. Write a full draft from the best one
-3. Include image concept (or generate if image gen is available)
+3. Include image concept (or generate if image tooling is available)
 4. Write to Notion as draft/review
 5. **Never auto-post**
 
@@ -275,13 +297,13 @@ Build these when the user explicitly asks, or when you hit clear limits.
 
 Do **not** add Hindsight, a custom vector DB, or a second memory stack by default.
 
-First see whether **Remnic + Notion + Gmail** already covers the real day-to-day use cases. If memory is weak, fix the current setup first before adding another system.
+First see whether **Remnic + Notion + email** already covers the real day-to-day use cases. If memory is weak, fix the current setup first before adding another system.
 
 Only add another memory layer if there is a demonstrated gap in real use.
 
 ### Direct social posting
 
-All content goes through Notion as drafts for now. Social scheduler integration (Buffer, etc.) when the volume justifies it.
+All content goes through Notion as drafts for now. Social scheduler integration when the volume justifies it.
 
 ### Browser automation
 
@@ -299,19 +321,30 @@ If the user starts using Fathom, Otter, etc. — feed transcripts in for follow-
 |------|-------|
 | Who the user is | `USER.md` in workspace |
 | Conversation + durable memory | Remnic (preferred) |
-| Fallback memory if plugins are blocked | `USER.md` + Notion notes + email context |
+| Fallback memory if Remnic is unavailable | Hermes native memory + `USER.md` + Notion notes + email context |
 | Proposals, drafts, CRM | Notion (user's existing workspace) |
-| Past emails | Gmail via Kiloclaw integration |
-| Open loops & reminders | Cron / built-in reminders |
+| Past emails | whichever Hermes email path is actually configured |
+| Open loops & reminders | Hermes cron / reminders |
 
 | Resource | Link |
 |----------|------|
-| OpenClaw docs | https://docs.openclaw.ai |
-| OpenClaw plugins | https://docs.openclaw.ai/tools/plugin |
-| OpenClaw configuration | https://docs.openclaw.ai/gateway/configuration |
-| OpenClaw tools | https://docs.openclaw.ai/tools |
-| Brave Search plugin | https://docs.openclaw.ai/brave-search |
+| Hermes docs | https://hermes-agent.nousresearch.com/docs/ |
+| Hermes memory | https://hermes-agent.nousresearch.com/docs/user-guide/features/memory |
+| Hermes MCP | https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp |
+| Hermes messaging | https://hermes-agent.nousresearch.com/docs/user-guide/messaging |
 | Remnic | https://github.com/joshuaswarren/remnic |
 | Notion API docs | https://developers.notion.com |
 | Notion create integration | https://www.notion.so/my-integrations |
 | Example Notion skill | `examples/notion-skill/` |
+
+---
+
+## Migration note
+
+This guide was originally written for a managed OpenClaw/Kiloclaw setup and then adapted for Hermes.
+
+That means some operational details may still need a final Hermes-specific pass once the actual deployment exists. The important part is the architecture and behavior:
+- simple memory first
+- draft-first approvals
+- adapt to the user's real Notion/email workflow
+- don't overbuild v1
