@@ -34,26 +34,52 @@ That's it. Don't waste time testing the obvious.
 
 ---
 
-## Step 2: Get Lossless Claw
+## Step 2: Set up memory (prefer Remnic)
 
-Lossless Claw gives you exact conversation recall across sessions. **This is the single most important plugin.** Without it, you forget everything between conversations.
+For this build, prefer **Remnic** as the main memory layer.
+
+Why: it is a cleaner fit for a non-technical operator than a separate stack like "conversation recall now, external memory later." It keeps memory local, uses plain markdown as source of truth, and avoids making the user care about multiple memory systems too early.
+
+On a tiny managed instance, keep the memory story simple:
+- **Best case:** Remnic
+- **Fallback:** workspace files + Notion + Gmail
+- **Avoid by default:** stacking Remnic **and** Hindsight **and** extra infrastructure on day one
 
 ### If the instance supports plugin installation
 
 ```bash
-openclaw plugins install lossless-claw
-openclaw gateway restart
-/lossless doctor
+openclaw plugins install @remnic/plugin-openclaw --pin
+remnic openclaw install
+remnic doctor
 ```
 
-### If no CLI access
+If the platform requires a restart or panel-based apply step, use that platform flow.
 
-Ask the Kiloclaw platform provider how to enable plugins. Check for a web UI or config panel.
+### If plugin installation is possible but the `remnic` CLI is not available
 
-If truly impossible, you'll rely on workspace files (MEMORY.md, etc.) for continuity — worse but workable. Flag this as a known limitation.
+Ask the platform provider to:
+1. install `@remnic/plugin-openclaw`
+2. wire it in as the active memory plugin
+3. restart/apply config if required
+
+### If no plugin access exists
+
+Don't burn time fighting the platform. Start with:
+- `USER.md` for identity, preferences, and guardrails
+- Notion for proposals, drafts, and structured notes
+- Gmail integration for email context
+
+Then mark durable memory as a known v1 limitation.
+
+### Important caveat
+
+Remnic still needs a supported extraction/model path. Before promising "smart long-term memory," confirm what the managed platform actually supports.
+
+If Remnic works, **do not add a second memory system by default**. Only add another layer later if a real gap appears in daily use.
 
 **References:**
-- [Plugin management](https://docs.openclaw.ai/tools/plugin)
+- [Remnic GitHub repo](https://github.com/joshuaswarren/remnic)
+- [OpenClaw plugin management](https://docs.openclaw.ai/tools/plugin)
 - [OpenClaw configuration](https://docs.openclaw.ai/gateway/configuration)
 
 ---
@@ -70,7 +96,7 @@ Ask a few questions at a time. Let them talk. Paraphrase back and confirm. 2-3 s
 
 **Identity & business:** What they do, what they sell, who their clients are, what good/bad relationships look like.
 
-**Communication style:** How they talk to clients, what tone you should use, language preferences (Italian/English/both).
+**Communication style:** How they talk to clients, what tone you should use, language preferences.
 
 **Clients & relationships:** Key current and past clients, people to reconnect with, people to avoid.
 
@@ -146,7 +172,14 @@ Notion integrations can only access pages that are explicitly shared with them. 
 
 **Option A: Direct API calls** — If you can make HTTP requests, call the Notion API directly. Works with any setup, no extra tools needed.
 
-**Option B: Notion CLI** — There's a standalone Python CLI (`notion-cli.py`) that wraps the Notion API. It reads `NOTION_API_TOKEN` from the environment. Commands: `discover` (list databases + schemas), `search`, `query`, `create-page`, `update-page`, `get-blocks`, `append-blocks`. It auto-retries on rate limits (429). The user would need to install it in the workspace or make it accessible.
+**Option B: Example skill + CLI in this repo** — This repo includes `examples/notion-skill/` with a scrubbed generic `SKILL.md` and `scripts/notion-cli.py`. Use it as a starting point, not a finished product. It should evolve to match the user's real workspace, naming, and workflows.
+
+The example CLI reads `NOTION_API_TOKEN` from the environment and supports commands like:
+- `discover` — list visible databases/data sources and schemas
+- `search` — find pages or data sources
+- `query` — search rows in a data source
+- `create-page` / `update-page` — write structured records
+- `get-blocks` / `append-blocks` — read or write page content
 
 **Option C: Manual** — Draft in chat, user copies to Notion. Lowest tech, still works.
 
@@ -155,6 +188,7 @@ Notion integrations can only access pages that are explicitly shared with them. 
 1. **Discover the existing workspace** — Don't assume structure. Run `discover` or ask the user what databases/pages exist.
 2. **Figure out where your outputs should go** — Ask the user: "Where should I put proposals? Where should I put content drafts?" Use their existing structure.
 3. **Only create new databases if needed** — If they don't have a place for proposals or content drafts, suggest one. But follow their lead.
+4. **Keep the skill generic** — Do not hardcode one person's property names, database layout, or business process across users.
 
 **References:**
 - [Notion API Getting Started](https://developers.notion.com/docs/getting-started)
@@ -186,7 +220,7 @@ The remaining steps are **starter suggestions**, not a mandatory sequence. The u
 
 When the user says "new client X came to me for Y":
 1. Research the company/market (web search)
-2. Check conversation history for relevant past work
+2. Check memory, emails, and notes for relevant past context
 3. Synthesize into a proposal
 4. Write to Notion (in the user's preferred location) as draft/review
 5. **Never auto-send**
@@ -225,7 +259,7 @@ Good first candidates: lead follow-ups, inbox triage, travel disruption triage, 
 
 Before calling v1 done, verify the user can do these without frustration:
 
-- [ ] "Who is this person and what happened before?" → useful, sourced answer
+- [ ] "Who is this person and what happened before?" → useful answer using memory/email/notes
 - [ ] "Research and draft a proposal for X" → lands in Notion, ready for review
 - [ ] "Write a social post about X" → draft + image concept in Notion
 - [ ] "My flight was canceled — help" → facts gathered, draft prepared, approval requested
@@ -237,12 +271,13 @@ Before calling v1 done, verify the user can do these without frustration:
 
 Build these when the user explicitly asks, or when you hit clear limits.
 
-### External long-term memory (Hindsight or similar)
+### Additional memory layers
 
-Conversation history + Notion is enough for now. When it isn't:
-- [Hindsight](https://github.com/vectorize-io/hindsight) — MIT, agent memory with entity graphs, temporal reasoning
-- Supabase free tier for PostgreSQL + pgvector hosting
-- Research whatever is current at that time
+Do **not** add Hindsight, a custom vector DB, or a second memory stack by default.
+
+First see whether **Remnic + Notion + Gmail** already covers the real day-to-day use cases. If memory is weak, fix the current setup first before adding another system.
+
+Only add another memory layer if there is a demonstrated gap in real use.
 
 ### Direct social posting
 
@@ -263,7 +298,8 @@ If the user starts using Fathom, Otter, etc. — feed transcripts in for follow-
 | What | Where |
 |------|-------|
 | Who the user is | `USER.md` in workspace |
-| Conversation history | Lossless Claw |
+| Conversation + durable memory | Remnic (preferred) |
+| Fallback memory if plugins are blocked | `USER.md` + Notion notes + email context |
 | Proposals, drafts, CRM | Notion (user's existing workspace) |
 | Past emails | Gmail via Kiloclaw integration |
 | Open loops & reminders | Cron / built-in reminders |
@@ -275,6 +311,7 @@ If the user starts using Fathom, Otter, etc. — feed transcripts in for follow-
 | OpenClaw configuration | https://docs.openclaw.ai/gateway/configuration |
 | OpenClaw tools | https://docs.openclaw.ai/tools |
 | Brave Search plugin | https://docs.openclaw.ai/brave-search |
+| Remnic | https://github.com/joshuaswarren/remnic |
 | Notion API docs | https://developers.notion.com |
 | Notion create integration | https://www.notion.so/my-integrations |
-| Hindsight (future) | https://github.com/vectorize-io/hindsight |
+| Example Notion skill | `examples/notion-skill/` |

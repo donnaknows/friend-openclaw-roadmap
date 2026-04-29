@@ -9,14 +9,15 @@ Build guide for a business operator assistant on a managed OpenClaw instance (Ki
 ## Architecture
 
 - **Kiloclaw** (managed OpenClaw) = runtime, chat, orchestration
-- **Lossless Claw** = conversation recall (mandatory)
+- **Remnic** = preferred memory layer
 - **Gmail** via Kiloclaw built-in integration = email
-- **Notion** = proposals, content drafts, CRM — adapts to user's existing workspace
-- **Hindsight** (later) = external long-term memory when session recall isn't enough
+- **Notion** = proposals, content drafts, CRM — adapts to the user's existing workspace
+- **Example Notion skill** = a generic starting point that should be adapted to the user's real workflow
 
 ## Principles
 
 1. Adapt to the user. Don't force a structure on them.
 2. Draft first, ask before external action.
 3. Retrieve before summarizing when history matters.
-4. This is a starting point, not a rigid script — let the user steer.
+4. Keep the stack simple at first. Don't add more memory systems unless a real gap appears.
+5. This is a starting point, not a rigid script — let the user steer.
